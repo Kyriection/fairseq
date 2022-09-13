@@ -16,6 +16,7 @@ fairseq-train "$path_2_data" \
   --encoder-normalize-before --decoder-normalize-before \
   --arch mbart_large --layernorm-embedding \
   --task translation_multi_simple_epoch \
+  --finetune-from-model "$pretrained_model" \
   --sampling-method "temperature" \
   --sampling-temperature "1.5" \
   --encoder-langtok "src" \
@@ -30,6 +31,3 @@ fairseq-train "$path_2_data" \
   --save-interval 1 --save-interval-updates 5000 --keep-interval-updates 10 --no-epoch-checkpoints \
   --seed 222 --log-format simple --log-interval 2
 
-
-
-  # --finetune-from-model "$pretrained_model" \
