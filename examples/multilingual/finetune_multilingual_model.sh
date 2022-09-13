@@ -14,7 +14,7 @@ pretrained_model=$4 #<path to a pretrained model>
 
 fairseq-train "$path_2_data" \
   --encoder-normalize-before --decoder-normalize-before \
-  --arch mbart_base --layernorm-embedding \
+  --arch mbart_large --layernorm-embedding \
   --task translation_multi_simple_epoch \
   --finetune-from-model "$pretrained_model" \
   --sampling-method "temperature" \
