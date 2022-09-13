@@ -50,3 +50,4 @@ ur_PK
 xh_ZA
 gl_ES
 sl_SI
+my-en
