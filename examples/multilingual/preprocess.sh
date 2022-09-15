@@ -1,9 +1,9 @@
 SRC=$1
 TGT=$2
-DATA=dataset/$1-$2
-TRAIN=train
-VALID=dev
-TEST=test
+DATA=dataset
+TRAIN=opus.$1-$2-train
+VALID=opus.$1-$2-dev
+TEST=opus.$1-$2-test
 DICT=mbart.cc25.v2/dict.txt
 DEST=data 
 NAME=$1_$2
