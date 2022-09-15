@@ -14,6 +14,13 @@ import os
 import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import tensorflow as tf 
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+
+
+
 # We need to setup root logger before importing any fairseq libraries.
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
