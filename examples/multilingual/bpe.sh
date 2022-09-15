@@ -1,9 +1,9 @@
 SPM=../../scripts/spm_encode.py
 MODEL=mbart.cc25.v2/sentence.bpe.model
-DATA=data_scripts/data/ML50/raw
-TRAIN=train.$1-$2
-VALID=valid.$1-$2
-TEST=test.$1-$2
+DATA=dataset
+TRAIN=opus.$1-$2-train
+VALID=opus.$1-$2-dev
+TEST=opus.$1-$2-test
 SRC=$1
 TGT=$2
 
