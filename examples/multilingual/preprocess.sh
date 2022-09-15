@@ -1,6 +1,6 @@
 SRC=$1
 TGT=$2
-DATA=data_scripts/data/indic_languages_corpus/indic_languages_corpus/bilingual/$1-$2
+DATA=dataset/$1-$2
 TRAIN=train
 VALID=dev
 TEST=test
