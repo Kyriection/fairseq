@@ -17,6 +17,7 @@ fairseq-train "$path_2_data" \
   --arch mbart_large --layernorm-embedding \
   --task translation_multi_simple_epoch \
   --restore-file "$pretrained_model" \
+  --reset-optimizer \
   --sampling-method "temperature" \
   --sampling-temperature "1.5" \
   --encoder-langtok "src" \
