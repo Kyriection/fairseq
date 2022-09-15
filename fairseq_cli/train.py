@@ -129,7 +129,6 @@ def main(cfg: FairseqConfig) -> None:
 
     for state in range(10):
         print(' IMP: {}'.format(state))
-        trainer.checkpoint_suffix = 'state{}'.format(state)
 
         # Load valid dataset (we load training data below, based on the latest checkpoint)
         # We load the valid dataset AFTER building the model
@@ -166,6 +165,7 @@ def main(cfg: FairseqConfig) -> None:
                 cfg.dataset.batch_size,
             )
         )
+        trainer.checkpoint_suffix = 'state{}'.format(state)
 
         # Load the latest checkpoint if one is available and restore the
         # corresponding train iterator
