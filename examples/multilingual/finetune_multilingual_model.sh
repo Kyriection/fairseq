@@ -29,5 +29,5 @@ fairseq-train "$path_2_data" \
   --dropout 0.3 --attention-dropout 0.1 --weight-decay 0.0 \
   --max-tokens 1024 --update-freq 2 \
   --save-interval 1 --save-interval-updates 5000 --keep-interval-updates 10 --no-epoch-checkpoints \
-  --seed 222 --log-format simple --log-interval 20 --save-dir $5 --batch-size 8
+  --seed 222 --log-format simple --log-interval 20 --save-dir $5
 
