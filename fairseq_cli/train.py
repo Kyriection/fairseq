@@ -6,7 +6,7 @@
 """
 Train a new model on one or across multiple GPUs.
 """
-
+import copy 
 import argparse
 import logging
 import math
@@ -39,7 +39,7 @@ from fairseq.file_io import PathManager
 from fairseq.logging import meters, metrics, progress_bar
 from fairseq.model_parallel.megatron_trainer import MegatronTrainer
 from fairseq.trainer import Trainer
-
+from fairseq_cli.pruner import *
 
 def main(cfg: FairseqConfig) -> None:
     if isinstance(cfg, argparse.Namespace):
@@ -123,95 +123,114 @@ def main(cfg: FairseqConfig) -> None:
         )
     )
 
-    # Load valid dataset (we load training data below, based on the latest checkpoint)
-    # We load the valid dataset AFTER building the model
-    data_utils.raise_if_valid_subsets_unintentionally_ignored(cfg)
-    if cfg.dataset.combine_valid_subsets:
-        task.load_dataset("valid", combine=True, epoch=1)
-    else:
-        for valid_sub_split in cfg.dataset.valid_subset.split(","):
-            task.load_dataset(valid_sub_split, combine=False, epoch=1)
 
-    # (optionally) Configure quantization
-    if cfg.common.quantization_config_path is not None:
-        quantizer = quantization_utils.Quantizer(
-            config_path=cfg.common.quantization_config_path,
-            max_epoch=cfg.optimization.max_epoch,
-            max_update=cfg.optimization.max_update,
-        )
-    else:
-        quantizer = None
+    # save initialization
+    initialization_pretrained = copy.deepcopy(model.state_dict())
 
-    # Build trainer
-    if cfg.common.model_parallel_size == 1:
-        trainer = Trainer(cfg, task, model, criterion, quantizer)
-    else:
-        trainer = MegatronTrainer(cfg, task, model, criterion)
-    logger.info(
-        "training on {} devices (GPUs/TPUs)".format(
-            cfg.distributed_training.distributed_world_size
-        )
-    )
-    logger.info(
-        "max tokens per device = {} and max sentences per device = {}".format(
-            cfg.dataset.max_tokens,
-            cfg.dataset.batch_size,
-        )
-    )
+    for state in range(10):
+        print(' IMP: {}'.format(state))
+        trainer.checkpoint_suffix = 'state{}'.format(state)
 
-    # Load the latest checkpoint if one is available and restore the
-    # corresponding train iterator
-    extra_state, epoch_itr = checkpoint_utils.load_checkpoint(
-        cfg.checkpoint,
-        trainer,
-        # don't cache epoch iterators for sharded datasets
-        disable_iterator_cache=task.has_sharded_data("train"),
-    )
-    if cfg.common.tpu:
-        import torch_xla.core.xla_model as xm
+        # Load valid dataset (we load training data below, based on the latest checkpoint)
+        # We load the valid dataset AFTER building the model
+        data_utils.raise_if_valid_subsets_unintentionally_ignored(cfg)
+        if cfg.dataset.combine_valid_subsets:
+            task.load_dataset("valid", combine=True, epoch=1)
+        else:
+            for valid_sub_split in cfg.dataset.valid_subset.split(","):
+                task.load_dataset(valid_sub_split, combine=False, epoch=1)
 
-        xm.rendezvous("load_checkpoint")  # wait for all workers
-
-    max_epoch = cfg.optimization.max_epoch or math.inf
-    lr = trainer.get_lr()
-
-    train_meter = meters.StopwatchMeter()
-    train_meter.start()
-    while epoch_itr.next_epoch_idx <= max_epoch:
-        if lr <= cfg.optimization.stop_min_lr:
-            logger.info(
-                f"stopping training because current learning rate ({lr}) is smaller "
-                "than or equal to minimum learning rate "
-                f"(--stop-min-lr={cfg.optimization.stop_min_lr})"
+        # (optionally) Configure quantization
+        if cfg.common.quantization_config_path is not None:
+            quantizer = quantization_utils.Quantizer(
+                config_path=cfg.common.quantization_config_path,
+                max_epoch=cfg.optimization.max_epoch,
+                max_update=cfg.optimization.max_update,
             )
-            break
+        else:
+            quantizer = None
 
-        # train for one epoch
-        valid_losses, should_stop = train(cfg, trainer, task, epoch_itr)
-        if should_stop:
-            break
+        # Build trainer
+        if cfg.common.model_parallel_size == 1:
+            trainer = Trainer(cfg, task, model, criterion, quantizer)
+        else:
+            trainer = MegatronTrainer(cfg, task, model, criterion)
+        logger.info(
+            "training on {} devices (GPUs/TPUs)".format(
+                cfg.distributed_training.distributed_world_size
+            )
+        )
+        logger.info(
+            "max tokens per device = {} and max sentences per device = {}".format(
+                cfg.dataset.max_tokens,
+                cfg.dataset.batch_size,
+            )
+        )
 
-        # only use first validation loss to update the learning rate
-        lr = trainer.lr_step(epoch_itr.epoch, valid_losses[0])
-
-        epoch_itr = trainer.get_train_iterator(
-            epoch_itr.next_epoch_idx,
-            # sharded data: get train iterator for next epoch
-            load_dataset=task.has_sharded_data("train"),
+        # Load the latest checkpoint if one is available and restore the
+        # corresponding train iterator
+        extra_state, epoch_itr = checkpoint_utils.load_checkpoint(
+            cfg.checkpoint,
+            trainer,
             # don't cache epoch iterators for sharded datasets
             disable_iterator_cache=task.has_sharded_data("train"),
         )
-    train_meter.stop()
-    logger.info("done training in {:.1f} seconds".format(train_meter.sum))
+        if cfg.common.tpu:
+            import torch_xla.core.xla_model as xm
 
-    # ioPath implementation to wait for all asynchronous file writes to complete.
-    if cfg.checkpoint.write_checkpoints_asynchronously:
-        logger.info(
-            "ioPath PathManager waiting for all asynchronous checkpoint "
-            "writes to finish."
-        )
-        PathManager.async_close()
-        logger.info("ioPath PathManager finished waiting.")
+            xm.rendezvous("load_checkpoint")  # wait for all workers
+
+        max_epoch = cfg.optimization.max_epoch or math.inf
+        lr = trainer.get_lr()
+
+        train_meter = meters.StopwatchMeter()
+        train_meter.start()
+        while epoch_itr.next_epoch_idx <= max_epoch:
+            if lr <= cfg.optimization.stop_min_lr:
+                logger.info(
+                    f"stopping training because current learning rate ({lr}) is smaller "
+                    "than or equal to minimum learning rate "
+                    f"(--stop-min-lr={cfg.optimization.stop_min_lr})"
+                )
+                break
+
+            # train for one epoch
+            valid_losses, should_stop = train(cfg, trainer, task, epoch_itr)
+            if should_stop:
+                break
+
+            # only use first validation loss to update the learning rate
+            lr = trainer.lr_step(epoch_itr.epoch, valid_losses[0])
+
+            epoch_itr = trainer.get_train_iterator(
+                epoch_itr.next_epoch_idx,
+                # sharded data: get train iterator for next epoch
+                load_dataset=task.has_sharded_data("train"),
+                # don't cache epoch iterators for sharded datasets
+                disable_iterator_cache=task.has_sharded_data("train"),
+            )
+        train_meter.stop()
+        logger.info("done training in {:.1f} seconds".format(train_meter.sum))
+
+        # ioPath implementation to wait for all asynchronous file writes to complete.
+        if cfg.checkpoint.write_checkpoints_asynchronously:
+            logger.info(
+                "ioPath PathManager waiting for all asynchronous checkpoint "
+                "writes to finish."
+            )
+            PathManager.async_close()
+            logger.info("ioPath PathManager finished waiting.")
+
+
+        prune_model_l1(trainer.model, 0.2)
+        mask_dict = extract_mask(trainer.model.state_dict())
+        remove_prune(trainer.model)
+        trainer.model.load_state_dict(initialization_pretrained)
+        prune_model_custom(trainer.model, mask_dict)
+        check_sparsity(trainer.model)
+        check_sparsity_overall(trainer.model)
+
+
 
 
 def should_stop_early(cfg: DictConfig, valid_loss: float) -> bool:
