@@ -32,7 +32,7 @@ from omegaconf import DictConfig, OmegaConf, open_dict
 logger = logging.getLogger(__name__)
 
 
-def save_checkpoint(cfg: CheckpointConfig, trainer, epoch_itr, val_loss):
+def save_checkpoint(cfg: CheckpointConfig, trainer, epoch_itr, val_loss, suffix_extra=None):
     from fairseq import meters
 
     # only one worker should attempt to create the required dir
@@ -66,7 +66,7 @@ def save_checkpoint(cfg: CheckpointConfig, trainer, epoch_itr, val_loss):
     def is_better(a, b):
         return a >= b if cfg.maximize_best_checkpoint_metric else a <= b
 
-    suffix = trainer.checkpoint_suffix
+    suffix = trainer.checkpoint_suffix + suffix_extra
     checkpoint_conds = collections.OrderedDict()
     checkpoint_conds["checkpoint{}{}.pt".format(epoch, suffix)] = (
         end_of_epoch and not cfg.no_epoch_checkpoints and epoch % cfg.save_interval == 0

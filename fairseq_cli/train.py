@@ -165,7 +165,6 @@ def main(cfg: FairseqConfig) -> None:
                 cfg.dataset.batch_size,
             )
         )
-        trainer.checkpoint_suffix = 'state{}'.format(state)
 
         # Load the latest checkpoint if one is available and restore the
         # corresponding train iterator
@@ -195,7 +194,7 @@ def main(cfg: FairseqConfig) -> None:
                 break
 
             # train for one epoch
-            valid_losses, should_stop = train(cfg, trainer, task, epoch_itr)
+            valid_losses, should_stop = train(cfg, trainer, task, epoch_itr, 'state{}'.format(state))
             if should_stop:
                 break
 
@@ -263,7 +262,8 @@ def should_stop_early(cfg: DictConfig, valid_loss: float) -> bool:
 
 @metrics.aggregate("train")
 def train(
-    cfg: DictConfig, trainer: Trainer, task: tasks.FairseqTask, epoch_itr
+    cfg: DictConfig, trainer: Trainer, task: tasks.FairseqTask, epoch_itr, 
+    suffix_extra: str,
 ) -> Tuple[List[Optional[float]], bool]:
     """Train the model for one epoch and return validation losses."""
     # Initialize data iterator
@@ -347,7 +347,7 @@ def train(
 
         end_of_epoch = not itr.has_next()
         valid_losses, should_stop = validate_and_save(
-            cfg, trainer, task, epoch_itr, valid_subsets, end_of_epoch
+            cfg, trainer, task, epoch_itr, valid_subsets, end_of_epoch, suffix_extra
         )
 
         if should_stop:
@@ -383,6 +383,7 @@ def validate_and_save(
     epoch_itr,
     valid_subsets: List[str],
     end_of_epoch: bool,
+    suffix_extra: str,
 ) -> Tuple[List[Optional[float]], bool]:
     num_updates = trainer.get_num_updates()
     max_update = cfg.optimization.max_update or math.inf
@@ -444,7 +445,7 @@ def validate_and_save(
     # Save checkpoint
     if do_save or should_stop:
         checkpoint_utils.save_checkpoint(
-            cfg.checkpoint, trainer, epoch_itr, valid_losses[0]
+            cfg.checkpoint, trainer, epoch_itr, valid_losses[0], suffix_extra=suffix_extra
         )
 
     return valid_losses, should_stop
