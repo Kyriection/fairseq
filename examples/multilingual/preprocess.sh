@@ -1,6 +1,6 @@
 SRC=$1
 TGT=$2
-DATA=dataset
+DATA=dataset/spm
 TRAIN=opus.$1-$2-train
 VALID=opus.$1-$2-dev
 TEST=opus.$1-$2-test
