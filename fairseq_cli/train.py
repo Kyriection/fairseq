@@ -227,6 +227,7 @@ def main(cfg: FairseqConfig) -> None:
             logger.info("ioPath PathManager finished waiting.")
 
         if hasattr(trainer.model, 'module'):
+            logger.info('Module')
             prune_model = trainer.model.module
         else:
             prune_model = trainer.model
@@ -237,7 +238,7 @@ def main(cfg: FairseqConfig) -> None:
         prune_model.load_state_dict(initialization_pretrained)
         prune_model_custom(prune_model, mask_dict)
         check_sparsity(prune_model)
-        check_sparsity_overall(prune_model)
+        # check_sparsity_overall(prune_model)
 
 
 
