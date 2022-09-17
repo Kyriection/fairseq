@@ -221,7 +221,7 @@ def main(cfg: FairseqConfig) -> None:
             PathManager.async_close()
             logger.info("ioPath PathManager finished waiting.")
 
-        if hasattr(trainer.model, module):
+        if hasattr(trainer.model, 'module'):
             prune_model = trainer.model.module
         else:
             prune_model = trainer.model
