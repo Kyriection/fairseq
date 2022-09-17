@@ -129,7 +129,7 @@ def main(cfg: FairseqConfig) -> None:
     initialization_pretrained = copy.deepcopy(model.state_dict())
 
     for state in range(10):
-        print(' IMP: {}'.format(state))
+        logger.info('* IMP: {}'.format(state))
 
         # Load valid dataset (we load training data below, based on the latest checkpoint)
         # We load the valid dataset AFTER building the model
@@ -221,14 +221,18 @@ def main(cfg: FairseqConfig) -> None:
             PathManager.async_close()
             logger.info("ioPath PathManager finished waiting.")
 
+        if hasattr(trainer.model, module):
+            prune_model = trainer.model.module
+        else:
+            prune_model = trainer.model
 
-        prune_model_l1(trainer.model, 0.2)
-        mask_dict = extract_mask(trainer.model.state_dict())
-        remove_prune(trainer.model)
-        trainer.model.load_state_dict(initialization_pretrained)
-        prune_model_custom(trainer.model, mask_dict)
-        check_sparsity(trainer.model)
-        check_sparsity_overall(trainer.model)
+        prune_model_l1(prune_model, 0.2)
+        mask_dict = extract_mask(prune_model.state_dict())
+        remove_prune(prune_model)
+        prune_model.load_state_dict(initialization_pretrained)
+        prune_model_custom(prune_model, mask_dict)
+        check_sparsity(prune_model)
+        check_sparsity_overall(prune_model)
 
 
 
