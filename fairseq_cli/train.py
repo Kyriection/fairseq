@@ -126,7 +126,10 @@ def main(cfg: FairseqConfig) -> None:
 
 
     # save initialization
-    initialization_pretrained = copy.deepcopy(model.state_dict())
+    if hasattr(model, 'module'):
+        initialization_pretrained = copy.deepcopy(model.module.state_dict())
+    else:
+        initialization_pretrained = copy.deepcopy(model.state_dict())
 
     for state in range(10):
         logger.info('* IMP: {}'.format(state))
