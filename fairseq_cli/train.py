@@ -125,12 +125,6 @@ def main(cfg: FairseqConfig) -> None:
     )
 
 
-    # save initialization
-    if hasattr(model, 'module'):
-        initialization_pretrained = copy.deepcopy(model.module.state_dict())
-    else:
-        initialization_pretrained = copy.deepcopy(model.state_dict())
-
     for state in range(10):
         logger.info('* IMP: {}'.format(state))
 
@@ -169,6 +163,14 @@ def main(cfg: FairseqConfig) -> None:
                 cfg.dataset.batch_size,
             )
         )
+
+        if state == 0:
+            # save initialization
+            if hasattr(trainer.model, 'module'):
+                initialization_pretrained = copy.deepcopy(trainer.model.module.state_dict())
+            else:
+                initialization_pretrained = copy.deepcopy(trainer.model.state_dict())
+
 
         # Load the latest checkpoint if one is available and restore the
         # corresponding train iterator
